@@ -2,7 +2,6 @@ package com.example.apigatewayservice.filter;
 
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHeaders;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
@@ -17,6 +16,8 @@ import reactor.core.publisher.Mono;
 
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.util.Base64;
 
 @Component
@@ -44,7 +45,7 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
             }
 
             String authorizationHeader = request.getHeaders().get(org.springframework.http.HttpHeaders.AUTHORIZATION).get(0);
-            String jwt = authorizationHeader.replace("Bearer", "");
+            String jwt = authorizationHeader.replace("Bearer ", "");
 
             if(!isJwtValid(jwt)){
                 return onError(exchange,"Jwt token is not valid", HttpStatus.UNAUTHORIZED);
@@ -65,25 +66,31 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
     }
 
     private boolean isJwtValid(String jwt) {
-//        byte[] secretKeyBytes = Base64.getEncoder().encode(env.getProperty("token.secret").getBytes());
-//        SecretKey signingKey = new SecretKeySpec(secretKeyBytes, SignatureAlgorithm.HS512.getJcaName());
-
         boolean returnValue = true;
         String subject = null;
 
         try {
-            JwtParser jwtParser = Jwts.parser().setSigningKey(env.getProperty("token.secret"))
+            // 환경에서 비밀 키 가져오기 (비밀 키는 Base64로 인코딩되지 않은 상태)
+            String secretKey = env.getProperty("token.secret");
+
+            // JWT 파서 설정
+            JwtParser jwtParser = Jwts.parser()
+                    .setSigningKey(secretKey)  // 비밀 키 직접 사용
                     .build();
 
+            // JWT 파싱
             subject = jwtParser.parseClaimsJws(jwt).getBody().getSubject();
         } catch (Exception ex) {
             returnValue = false;
         }
 
+        // subject가 null 또는 비어있으면 검증 실패 처리
         if (subject == null || subject.isEmpty()) {
             returnValue = false;
         }
 
         return returnValue;
     }
+
+
 }
