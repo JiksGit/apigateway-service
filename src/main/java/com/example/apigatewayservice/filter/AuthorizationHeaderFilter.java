@@ -56,6 +56,7 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
         });
     }
 
+
     // Mono, Flux -> Spring WebFlux // WebFlux 데이터 단위는 Mono <- 서블릿 no, ServerHttpResponse
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();
@@ -91,6 +92,4 @@ public class AuthorizationHeaderFilter extends AbstractGatewayFilterFactory<Auth
 
         return returnValue;
     }
-
-
 }
